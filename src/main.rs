@@ -1,17 +1,18 @@
 use std::io::prelude::*;
-use std::os::unix::net::UnixStream;
+use std::os::unix::net::{UnixListener, UnixStream};
 
 fn main() -> std::io::Result<()> {
-    let b = include_bytes!("../scgi.bin");
+    let l = UnixListener::bind("/var/run/rtorrent/rpc.socket").expect("couldn't create socket");
 
-    dbg!("1");
-    let mut stream = UnixStream::connect("/var/run/rtorrent/rpc.socket")?;
-    stream.write_all(b)?;
+    match l.accept() {
+        Ok((mut socket, addr)) => {
+            let mut b = vec![0_u8; 30000];
 
-    dbg!("2");
-    let mut response = String::new();
-    stream.read_to_string(&mut response)?;
+            socket.read(&mut b)?;
 
-    println!("{}", response);
+            std::fs::write("./req.xml", b)?;
+        }
+        Err(e) => println!("err!"),
+    }
     Ok(())
 }
