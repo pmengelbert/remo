@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use simple_xmlrpc::{parse_value, stringify_request, Value};
+use serde_xmlrpc::{request_to_string, value_from_str, Value};
 use std::io::prelude::*;
 use std::os::unix::net::UnixStream;
 
@@ -18,10 +18,10 @@ fn call_rpc<T: AsRef<str>>(cmd_args: &[T]) -> Result<String> {
     let args: Vec<Value> = cmd_args
         .iter()
         .skip(1)
-        .map(|s| parse_value(s.as_ref()).unwrap())
+        .map(|s| value_from_str(s.as_ref()).unwrap())
         .collect();
 
-    let call = stringify_request(cmd.as_ref(), &args)?;
+    let call = request_to_string(cmd.as_ref(), &args)?;
     let msg = wrap_xml_request(call.as_bytes());
     let mut stream = UnixStream::connect("/var/run/rtorrent/rpc.socket")?;
     stream.write_all(&msg)?;

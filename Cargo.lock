@@ -71,19 +71,50 @@ name = "remo"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "simple-xmlrpc",
+ "serde_xmlrpc",
 ]
 
 [[package]]
-name = "simple-xmlrpc"
-version = "0.1.0"
+name = "serde"
+version = "1.0.137"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0192c064daabac098316627caa3d72812513655cdbfd3c1a761002f41e165914"
+checksum = "61ea8d54c77f8315140a05f4c7237403bf38b72704d031543aa1d16abbf517d1"
+dependencies = [
+ "serde_derive",
+]
+
+[[package]]
+name = "serde-transcode"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "590c0e25c2a5bb6e85bf5c1bce768ceb86b316e7a01bdf07d2cb4ec2271990e2"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "serde_derive"
+version = "1.0.137"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1f26faba0c3959972377d3b2d306ee9f71faee9714294e41bb777f83f88578be"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "serde_xmlrpc"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "802f889c761a5033f7adb3e333646d09329be5e649fcbf34897f8a5e2a5ff0ff"
 dependencies = [
  "anyhow",
  "base64",
  "iso8601",
  "quick-xml",
+ "serde",
+ "serde-transcode",
  "thiserror",
 ]
 
