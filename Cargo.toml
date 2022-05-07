@@ -9,5 +9,5 @@ path = "src/main.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-xmlrpc = "0.15.1"
+simple-xmlrpc = "0.1.0"
 anyhow = "1.0.57"

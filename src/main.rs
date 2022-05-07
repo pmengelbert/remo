@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use simple_xmlrpc::{parse_response, parse_value, stringify_request, Value};
 use std::io::prelude::*;
 use std::os::unix::net::UnixStream;
 
@@ -14,17 +15,40 @@ fn call_rpc<T: AsRef<str>>(cmd_args: &[T]) -> Result<String> {
         .get(0)
         .ok_or_else(|| anyhow!("need at least one arg"))?;
 
-    let mut call = xmlrpc::Request::new(cmd.as_ref());
-    for arg in cmd_args.iter().skip(1) {
-        call = call.arg(arg.as_ref());
-    }
+    let args: Vec<Value> = cmd_args
+        .iter()
+        .skip(1)
+        .map(|s| parse_value(s.as_ref()).unwrap())
+        .collect();
 
-    let msg = wrap_xml_request(call);
+    let call = stringify_request(cmd.as_ref(), &args)?;
+    let msg = wrap_xml_request(call.as_bytes());
     let mut stream = UnixStream::connect("/var/run/rtorrent/rpc.socket")?;
     stream.write_all(&msg)?;
 
     let mut response = String::new();
     stream.read_to_string(&mut response)?;
+    let first = response
+        .find(|c| c == '>')
+        .unwrap_or_else(|| response.len() - 1)
+        + 3;
+
+    let mut inter: Vec<String> = vec![];
+    dbg!(response.drain(first..).as_str());
+    let parsed = parse_response(response.drain(first..).as_str())?;
+
+    dbg!("1.5");
+    if let Value::Array(vc) = parsed {
+        dbg!("2");
+        for v in vc {
+            dbg!("3");
+            if let Value::String(s) = v {
+                inter.push(s)
+            }
+        }
+    }
+
+    let response: String = inter.join("\n");
 
     Ok(response)
 }
@@ -37,10 +61,7 @@ fn add_header(v: &mut Vec<u8>, key: &str, value: &str) {
     v.push(0);
 }
 
-fn wrap_xml_request(req: xmlrpc::Request) -> Vec<u8> {
-    let mut xml = vec![];
-    req.write_as_xml(&mut xml).unwrap();
-
+fn wrap_xml_request(xml: &[u8]) -> Vec<u8> {
     let mut header = Vec::new();
     add_header(&mut header, "CONTENT_LENGTH", &format!("{}", xml.len()));
     add_header(&mut header, "HTTP_ACCEPT", "*/*");
