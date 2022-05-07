@@ -1,11 +1,14 @@
 FROM --platform=$TARGETPLATFORM rust:1-alpine3.15 as builder
 
+RUN apk add openssl-dev pkgconf musl-dev
 WORKDIR /rust
 COPY Cargo.toml Cargo.lock ./
-RUN mkdir src; echo 'fn main() { println!("dummy") }' > src/main.rs
+RUN sed -i 's#src/main.rs#dummy.rs#' Cargo.toml
+RUN mkdir src; echo 'fn main() { println!("dummy") }' > dummy.rs
 RUN cargo build --release
-RUN rm -rf src
+RUN rm -rf src Cargo.toml
 
+COPY Cargo.toml Cargo.toml
 COPY src src
 RUN cargo build --release
 
