@@ -1,21 +1,32 @@
+use anyhow::{anyhow, Result};
 use std::io::prelude::*;
 use std::os::unix::net::UnixStream;
 
-fn main() -> std::io::Result<()> {
-    let cmd = std::env::args().nth(1).expect("need an arg");
-    let x = xmlrpc::Request::new(&cmd);
-    let msg = wrap_xml_request(x);
+fn main() -> Result<()> {
+    let y: Vec<String> = std::env::args().skip(1).collect();
+    let resp = call_rpc(&y)?;
+    println!("{}", resp);
+    Ok(())
+}
 
-    dbg!("1");
+fn call_rpc<T: AsRef<str>>(cmd_args: &[T]) -> Result<String> {
+    let cmd = cmd_args
+        .get(0)
+        .ok_or_else(|| anyhow!("need at least one arg"))?;
+
+    let mut call = xmlrpc::Request::new(cmd.as_ref());
+    for arg in cmd_args.iter().skip(1) {
+        call = call.arg(arg.as_ref());
+    }
+
+    let msg = wrap_xml_request(call);
     let mut stream = UnixStream::connect("/var/run/rtorrent/rpc.socket")?;
     stream.write_all(&msg)?;
 
-    dbg!("2");
     let mut response = String::new();
     stream.read_to_string(&mut response)?;
 
-    println!("{}", response);
-    Ok(())
+    Ok(response)
 }
 
 fn add_header(v: &mut Vec<u8>, key: &str, value: &str) {

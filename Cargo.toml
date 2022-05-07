@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 xmlrpc = "0.15.1"
+anyhow = "1.0.57"
