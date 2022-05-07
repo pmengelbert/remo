@@ -2,7 +2,7 @@ use std::io::prelude::*;
 use std::os::unix::net::UnixStream;
 
 fn main() -> std::io::Result<()> {
-    let b = include_bytes!("../scgi.bin");
+    let b = include_bytes!("../req.xml");
 
     dbg!("1");
     let mut stream = UnixStream::connect("/var/run/rtorrent/rpc.socket")?;
