@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use simple_xmlrpc::{parse_response, parse_value, stringify_request, Value};
+use simple_xmlrpc::{parse_value, stringify_request, Value};
 use std::io::prelude::*;
 use std::os::unix::net::UnixStream;
 
@@ -28,27 +28,6 @@ fn call_rpc<T: AsRef<str>>(cmd_args: &[T]) -> Result<String> {
 
     let mut response = String::new();
     stream.read_to_string(&mut response)?;
-    let first = response
-        .find(|c| c == '>')
-        .unwrap_or_else(|| response.len() - 1)
-        + 3;
-
-    let mut inter: Vec<String> = vec![];
-    dbg!(response.drain(first..).as_str());
-    let parsed = parse_response(response.drain(first..).as_str())?;
-
-    dbg!("1.5");
-    if let Value::Array(vc) = parsed {
-        dbg!("2");
-        for v in vc {
-            dbg!("3");
-            if let Value::String(s) = v {
-                inter.push(s)
-            }
-        }
-    }
-
-    let response: String = inter.join("\n");
 
     Ok(response)
 }
