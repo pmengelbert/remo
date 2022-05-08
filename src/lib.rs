@@ -1,7 +1,8 @@
 use anyhow::{anyhow, Result};
-use serde_xmlrpc::{request_to_string, Value};
+use serde_xmlrpc::{request_to_string, response_from_str, Value};
 use std::io::prelude::*;
 use std::os::unix::net::UnixStream;
+
 pub fn unwrap_response(resp: &str) -> &str {
     let first = resp.find('<').unwrap_or(resp.len());
     &resp[first..]
@@ -27,7 +28,21 @@ pub fn call_rpc<T: AsRef<str>>(cmd_args: &[T]) -> Result<String> {
     let mut response = String::new();
     stream.read_to_string(&mut response)?;
 
-    Ok(response)
+    let response = unwrap_response(&response);
+    let mut resp = String::with_capacity(response.len());
+
+    if let Ok(v) = response_from_str::<Vec<String>>(&response) {
+        for s in v {
+            resp.push_str(&s);
+            resp.push('\n');
+        }
+    } else if let Ok(i) = response_from_str::<i64>(&response) {
+        resp.push_str(&i.to_string());
+    } else if let Ok(s) = response_from_str::<String>(&response) {
+        resp = s;
+    }
+
+    Ok(resp)
 }
 
 pub fn add_header(v: &mut Vec<u8>, key: &str, value: &str) {
