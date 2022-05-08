@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use serde_xmlrpc::{request_to_string, value_from_str, Value};
+use serde_xmlrpc::{request_to_string, Value};
 use std::io::prelude::*;
 use std::os::unix::net::UnixStream;
 pub fn unwrap_response(resp: &str) -> &str {
@@ -27,28 +27,7 @@ pub fn call_rpc<T: AsRef<str>>(cmd_args: &[T]) -> Result<String> {
     let mut response = String::new();
     stream.read_to_string(&mut response)?;
 
-    let v = value_from_str(&response)?;
-    let resp = match v {
-        Value::Int(i) => format!("{}", i),
-        Value::Bool(b) => format!("{}", b),
-        Value::Int64(i) => format!("{}", i),
-        Value::Array(v) => {
-            let mut resp = String::new();
-            for w in v {
-                if let Value::String(s) = w {
-                    resp.push_str(&s);
-                }
-            }
-            resp
-        }
-        Value::String(s) => s,
-        Value::Double(f) => format!("{}", f),
-        Value::Base64(s) => String::from_utf8(s)?,
-        Value::DateTime(d) => d.to_string(),
-        _ => return Err(anyhow!("bad value returned")),
-    };
-
-    Ok(resp)
+    Ok(response)
 }
 
 pub fn add_header(v: &mut Vec<u8>, key: &str, value: &str) {
