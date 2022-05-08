@@ -28,18 +28,32 @@ pub fn call_rpc<T: AsRef<str>>(cmd_args: &[T]) -> Result<String> {
     let mut response = String::new();
     stream.read_to_string(&mut response)?;
 
-    let response = unwrap_response(&response);
-    let mut resp = String::with_capacity(response.len());
+    let unwrapped = unwrap_response(&response).to_owned();
+    let mut resp = String::with_capacity(unwrapped.len());
 
-    if let Ok(v) = response_from_str::<Vec<String>>(&response) {
+    if let Ok(v) = response_from_str::<Vec<String>>(&unwrapped) {
         for s in v {
             resp.push_str(&s);
             resp.push('\n');
         }
-    } else if let Ok(i) = response_from_str::<i64>(&response) {
+    } else if let Ok(i) = response_from_str::<i64>(&unwrapped) {
         resp.push_str(&i.to_string());
-    } else if let Ok(s) = response_from_str::<String>(&response) {
+    } else if let Ok(s) = response_from_str::<String>(&unwrapped) {
         resp = s;
+    } else if let Ok(v) = response_from_str::<Vec<Vec<String>>>(&unwrapped) {
+        for vv in v {
+            resp.push_str("[\n");
+            for vvv in vv {
+                resp.push('\t');
+                resp.push_str(&vvv);
+                resp.push('\n');
+            }
+            resp.push_str("],\n");
+        }
+    }
+
+    if resp.is_empty() {
+        return Ok(unwrapped);
     }
 
     Ok(resp)
