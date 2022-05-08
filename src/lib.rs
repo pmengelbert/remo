@@ -18,9 +18,9 @@ pub fn call_rpc<T: AsRef<str>>(cmd_args: &[T]) -> Result<String> {
         .map(|s| Value::String(s.as_ref().to_owned()))
         .collect();
 
-    dbg!(&args);
     let call = request_to_string(cmd.as_ref(), args)?;
     let msg = wrap_xml_request(call.as_bytes());
+
     let mut stream = UnixStream::connect("/var/run/rtorrent/rpc.socket")?;
     stream.write_all(&msg)?;
 
