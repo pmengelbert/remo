@@ -1,9 +1,10 @@
 use anyhow::{anyhow, Result};
-use serde_xmlrpc::{request_to_string, value_from_str, Value};
+use serde_xmlrpc::{request_to_string, response_from_str, Value};
 use std::io::prelude::*;
 use std::os::unix::net::UnixStream;
+
 pub fn unwrap_response(resp: &str) -> &str {
-    let first = resp.find('>').unwrap_or(resp.len() - 1) + 1;
+    let first = resp.find('<').unwrap_or(resp.len());
     &resp[first..]
 }
 
@@ -27,26 +28,19 @@ pub fn call_rpc<T: AsRef<str>>(cmd_args: &[T]) -> Result<String> {
     let mut response = String::new();
     stream.read_to_string(&mut response)?;
 
-    let v = value_from_str(&response)?;
-    let resp = match v {
-        Value::Int(i) => format!("{}", i),
-        Value::Bool(b) => format!("{}", b),
-        Value::Int64(i) => format!("{}", i),
-        Value::Array(v) => {
-            let mut resp = String::new();
-            for w in v {
-                if let Value::String(s) = w {
-                    resp.push_str(&s);
-                }
-            }
-            resp
+    let response = unwrap_response(&response);
+    let mut resp = String::with_capacity(response.len());
+
+    if let Ok(v) = response_from_str::<Vec<String>>(&response) {
+        for s in v {
+            resp.push_str(&s);
+            resp.push('\n');
         }
-        Value::String(s) => s,
-        Value::Double(f) => format!("{}", f),
-        Value::Base64(s) => String::from_utf8(s)?,
-        Value::DateTime(d) => d.to_string(),
-        _ => return Err(anyhow!("bad value returned")),
-    };
+    } else if let Ok(i) = response_from_str::<i64>(&response) {
+        resp.push_str(&i.to_string());
+    } else if let Ok(s) = response_from_str::<String>(&response) {
+        resp = s;
+    }
 
     Ok(resp)
 }
