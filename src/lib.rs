@@ -1,27 +1,25 @@
 use anyhow::{anyhow, Result};
-use serde_xmlrpc::{request_to_string, value_from_str, Value};
+use serde_xmlrpc::{request_to_string, Value};
 use std::io::prelude::*;
 use std::os::unix::net::UnixStream;
-
-fn main() -> Result<()> {
-    let y: Vec<String> = std::env::args().skip(1).collect();
-    let resp = call_rpc(&y)?;
-    println!("{}", resp);
-    Ok(())
+pub fn unwrap_response(resp: &str) -> &str {
+    let first = resp.find('<').unwrap_or(resp.len());
+    &resp[first..]
 }
 
-fn call_rpc<T: AsRef<str>>(cmd_args: &[T]) -> Result<String> {
+pub fn call_rpc<T: AsRef<str>>(cmd_args: &[T]) -> Result<String> {
     let cmd = cmd_args
         .get(0)
         .ok_or_else(|| anyhow!("need at least one arg"))?;
 
     let args: Vec<Value> = cmd_args
-        .iter()
+        .into_iter()
         .skip(1)
-        .map(|s| value_from_str(s.as_ref()).unwrap())
+        .map(|s| Value::String(s.as_ref().to_owned()))
         .collect();
 
-    let call = request_to_string(cmd.as_ref(), &args)?;
+    dbg!(&args);
+    let call = request_to_string(cmd.as_ref(), args)?;
     let msg = wrap_xml_request(call.as_bytes());
     let mut stream = UnixStream::connect("/var/run/rtorrent/rpc.socket")?;
     stream.write_all(&msg)?;
@@ -32,7 +30,7 @@ fn call_rpc<T: AsRef<str>>(cmd_args: &[T]) -> Result<String> {
     Ok(response)
 }
 
-fn add_header(v: &mut Vec<u8>, key: &str, value: &str) {
+pub fn add_header(v: &mut Vec<u8>, key: &str, value: &str) {
     v.extend(key.as_bytes());
     v.push(0);
 
@@ -40,7 +38,7 @@ fn add_header(v: &mut Vec<u8>, key: &str, value: &str) {
     v.push(0);
 }
 
-fn wrap_xml_request(xml: &[u8]) -> Vec<u8> {
+pub fn wrap_xml_request(xml: &[u8]) -> Vec<u8> {
     let mut header = Vec::new();
     add_header(&mut header, "CONTENT_LENGTH", &format!("{}", xml.len()));
     add_header(&mut header, "HTTP_ACCEPT", "*/*");

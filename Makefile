@@ -8,3 +8,5 @@ build_arm:
 
 scp:
 	scp bin/remo p:
+
+build_scp: build_arm scp
