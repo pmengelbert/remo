@@ -3,7 +3,7 @@ use serde_xmlrpc::{request_to_string, value_from_str, Value};
 use std::io::prelude::*;
 use std::os::unix::net::UnixStream;
 pub fn unwrap_response(resp: &str) -> &str {
-    let first = resp.find('<').unwrap_or(resp.len());
+    let first = resp.find('>').unwrap_or(resp.len() - 1) + 1;
     &resp[first..]
 }
 
