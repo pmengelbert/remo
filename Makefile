@@ -7,6 +7,6 @@ build_arm:
 	docker buildx build --output=type=local,dest=$(shell pwd)/bin/ --platform=linux/arm64 -t doesnot:matter .
 
 scp:
-	scp bin/remo p:
+	scp bin/remo p:bin/remo
 
 build_scp: build_arm scp
