@@ -17,7 +17,7 @@ fn main() -> Result<()> {
         match message {
             ConsumerMessage::Delivery(d) => {
                 let body: HashMap<String, String> = serde_json::from_slice(&d.body)?;
-                c.get("http://10.0.0.3:30777/")
+                c.post("http://10.0.0.3:30777/")
                     .body(body.get("title").unwrap().to_owned())
                     .send()?;
 
