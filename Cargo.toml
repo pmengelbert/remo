@@ -5,9 +5,16 @@ edition = "2021"
 [[bin]]
 name = "remo"
 path = "src/bin/remo.rs"
+[[bin]]
+name = "milkmilk"
+path = "src/bin/milkmilk.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 serde_xmlrpc = "0.1.1"
 anyhow = "1.0.57"
+amiquip = { version = "0.4", default-features = false }
+reqwest = { version = "0.11", features = ["blocking", "json"] }
+serde = { version = "1.0.137" }
+serde_json = "1.0.81"
