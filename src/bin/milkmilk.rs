@@ -21,8 +21,9 @@ fn main() -> Result<()> {
                     .body(body.get("title").unwrap().to_owned())
                     .send()?;
 
+                println!("sending {} to rtorrent", body.get("title").unwrap());
                 let z = call_rpc(&["load.start", "", body.get("download").unwrap()])?;
-                println!("{}", z);
+                println!("response: {}", z);
                 cnsm.ack(d)?;
             }
             other => {
