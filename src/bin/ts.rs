@@ -16,6 +16,7 @@ struct Torrent {
     link: String,
     size: String,
     attr: Vec<Attr>,
+    jackettindexer: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
@@ -31,7 +32,12 @@ struct Channel {
 
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
-    let mut opt = getopt::Parser::new(&args, "s:e:1n:d");
+    if args.len() == 1 {
+        print_help();
+        return Ok(());
+    }
+
+    let mut opt = getopt::Parser::new(&args, "has:e:1n:d");
     let api_key = std::env::var("JACKETT_API_KEY")
         .unwrap_or_else(|_| "sypom0i0ugs22oqoyvg9edyky5uasoy5".to_owned());
 
@@ -39,13 +45,19 @@ fn main() -> Result<()> {
     let mut episode = String::new();
     let mut download_first = false;
     let mut num = 5_usize;
+    let mut print_all = false;
 
     while let Some(o) = opt.next().transpose()? {
         match o {
+            getopt::Opt('h', None) => {
+                print_help();
+                return Ok(());
+            }
             getopt::Opt('s', Some(s)) => season = s.clone(),
             getopt::Opt('e', Some(e)) => episode = e.clone(),
             getopt::Opt('n', Some(n)) => num = n.parse::<usize>()?,
             getopt::Opt('1', None) => download_first = true,
+            getopt::Opt('a', None) => print_all = true,
             getopt::Opt('*', _) => (),
             _ => unreachable!(),
         }
@@ -58,8 +70,13 @@ fn main() -> Result<()> {
         api_key, search_term
     );
 
-    let is_tv_show = !season.is_empty() && !episode.is_empty();
+    let is_tv_show = !season.is_empty() || !episode.is_empty();
     if is_tv_show {
+        if season.is_empty() {
+            return Err(anyhow::format_err!(
+                "if -e is provided, -s must also be provided"
+            ));
+        }
         url = format!("http://10.0.0.3:30333/api/v2.0/indexers/all/results/torznab?apikey={}&t=tvsearch&q={}&season={}&ep={}", api_key, search_term, season, episode);
     }
 
@@ -79,9 +96,13 @@ fn main() -> Result<()> {
     let mut count = 0;
     let mut seeders = String::new();
 
-    let num = std::cmp::min(x.channel[0].item.len(), num);
+    num = if print_all {
+        x.channel[0].item.len()
+    } else {
+        std::cmp::min(x.channel[0].item.len(), num)
+    };
+
     for t in &x.channel[0].item[..num] {
-        dbg!(&t.size);
         let size = t.size.parse::<u64>()?;
         let size = parse_size(size)?;
 
@@ -92,8 +113,8 @@ fn main() -> Result<()> {
         }
 
         println!(
-            "{})\tname:\t\t{}\n\tseeders:\t{}\n\tsize:\t\t{}\n",
-            count, t.title, seeders, size,
+            "{})\tname:\t\t{}\n\tseeders:\t{}\n\tsize:\t\t{}\n\tindexer:\t{}\n",
+            count, t.title, seeders, size, t.jackettindexer,
         );
 
         count += 1;
@@ -130,4 +151,19 @@ fn parse_size(size: u64) -> Result<String> {
     };
 
     Ok(format!("{:.2}{}", last, suffix))
+}
+
+fn print_help() {
+    println!(
+        r"Usage: ts [OPTIONS...] <SEARCH TERM...>
+
+Options:
+    -h          print this help
+    -s NUM      specify season
+    -e NUM      specify the episode, must be used in conjunction with -s
+    -n NUM      print NUM results (default 5)
+    -1          download the top search result
+    -a          print all results
+"
+    )
 }
