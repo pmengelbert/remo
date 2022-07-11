@@ -38,8 +38,7 @@ fn main() -> Result<()> {
     }
 
     let mut opt = getopt::Parser::new(&args, "has:e:1n:d");
-    let api_key = std::env::var("JACKETT_API_KEY")
-        .unwrap_or_else(|_| "sypom0i0ugs22oqoyvg9edyky5uasoy5".to_owned());
+    let api_key = std::env::var("JACKETT_API_KEY").unwrap_or_else(|_| "password".to_owned());
 
     let mut season = String::new();
     let mut episode = String::new();
@@ -77,19 +76,28 @@ fn main() -> Result<()> {
                 "if -e is provided, -s must also be provided"
             ));
         }
-        url = format!("http://10.0.0.3:30333/api/v2.0/indexers/all/results/torznab?apikey={}&t=tvsearch&q={}&season={}&ep={}", api_key, search_term, season, episode);
+
+        url = format!("http://10.0.0.3:30333/api/v2.0/indexers/all/results/torznab?apikey={}&t=tvsearch&q={}&season={}", api_key, search_term, season);
+        if !episode.is_empty() {
+            url.push_str("&ep=");
+            url.push_str(&episode);
+        }
     }
 
-    let x = reqwest::blocking::get(&url)?.text()?;
+    let doc = reqwest::blocking::get(&url)?.text()?;
 
-    let x: Channel = serde_xml_rs::from_str(&x).unwrap_or_default();
-    if x.channel.len() == 0 {
-        println!("no torrents found for search term {:?}", &loose);
-        std::process::exit(0);
+    let doc: Channel = serde_xml_rs::from_str(&doc).unwrap_or_default();
+    if doc.channel.len() == 0 {
+        let s = format!("no torrents found for search term {:?}", &loose);
+        return if download_first {
+            Err(anyhow::format_err!("{}", s))
+        } else {
+            Ok(())
+        };
     }
 
     if download_first {
-        call_rpc(&["load.start", "", &x.channel[0].item[0].link])?;
+        call_rpc(&["load.start", "", &doc.channel[0].item[0].link])?;
         return Ok(());
     }
 
@@ -97,18 +105,18 @@ fn main() -> Result<()> {
     let mut seeders = String::new();
 
     num = if print_all {
-        x.channel[0].item.len()
+        doc.channel[0].item.len()
     } else {
-        std::cmp::min(x.channel[0].item.len(), num)
+        std::cmp::min(doc.channel[0].item.len(), num)
     };
 
-    for t in &x.channel[0].item[..num] {
+    for t in &doc.channel[0].item[..num] {
         let size = t.size.parse::<u64>()?;
         let size = parse_size(size)?;
 
-        for x in &t.attr {
-            if x.name == "seeders" {
-                seeders = x.value.clone();
+        for attr in &t.attr {
+            if attr.name == "seeders" {
+                seeders = attr.value.clone();
             }
         }
 
@@ -126,7 +134,7 @@ fn main() -> Result<()> {
     std::io::stdin().read_line(&mut s)?;
     let i: usize = s.trim().parse()?;
 
-    call_rpc(&["load.start", "", &x.channel[0].item[i].link])?;
+    call_rpc(&["load.start", "", &doc.channel[0].item[i].link])?;
     Ok(())
 }
 
