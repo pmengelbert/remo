@@ -135,6 +135,15 @@ fn main() -> Result<()> {
     let i: usize = s.trim().parse()?;
 
     call_rpc(&["load.start", "", &doc.channel[0].item[i].link])?;
+
+    let c = reqwest::blocking::Client::new();
+    let resp = c
+        .request(reqwest::Method::POST, "http://10.0.0.3:30777/")
+        .body(doc.channel[0].item[i].title.clone())
+        .send()?;
+
+    println!("{}", resp.text()?);
+
     Ok(())
 }
 
