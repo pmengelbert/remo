@@ -128,9 +128,7 @@ fn main() -> Result<()> {
         std::cmp::min(channel.item.len(), print_num)
     };
 
-    let mut count = 0;
-
-    for t in &channel.item[..print_num] {
+    for (count, t) in channel.item[..print_num].iter().enumerate() {
         let size = t.size.parse::<u64>()?;
         let size = parse_size(size)?;
 
@@ -145,8 +143,6 @@ fn main() -> Result<()> {
             "{})\tname:\t\t{}\n\tseeders:\t{}\n\tsize:\t\t{}\n\tindexer:\t{}\n",
             count, t.title, seeders, size, t.jackettindexer,
         );
-
-        count += 1;
     }
 
     let mut s = String::new();
@@ -220,7 +216,7 @@ fn parse_size(size: u64) -> Result<String> {
 
 fn print_help() {
     println!(
-        r"Usage: ts [OPTIONS...] <SEARCH TERM...>
+        "Usage: ts [OPTIONS...] <SEARCH TERM...>
 
 Options:
     -h          print this help
