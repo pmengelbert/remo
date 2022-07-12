@@ -4,7 +4,7 @@ tar:
 	cargo run
 
 build_arm:
-	docker buildx build --output=type=local,dest=$(shell pwd)/bin/ --platform=linux/arm64 -t doesnot:matter .
+	cross build --release --target=armv7-unknown-linux-musleabihf
 
 scp:
 	scp bin/remo p:bin/remo
