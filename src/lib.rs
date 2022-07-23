@@ -44,16 +44,16 @@ fn build_custom_response(orig: &str) -> Cow<str> {
     let unwrapped = unwrap_response(orig);
     let len = unwrapped.len();
 
+    if let Ok(v) = response_from_str::<Vec<String>>(unwrapped) {
+        return Cow::Owned(prepare_string_response(v, len));
+    }
+
     if let Ok(i) = response_from_str::<i64>(unwrapped) {
         return Cow::Owned(i.to_string());
     }
 
     if let Ok(s) = response_from_str::<String>(unwrapped) {
         return Cow::Owned(s);
-    }
-
-    if let Ok(v) = response_from_str::<Vec<String>>(unwrapped) {
-        return Cow::Owned(prepare_string_response(v, len));
     }
 
     if let Ok(matrix) = response_from_str::<Vec<Vec<String>>>(unwrapped) {
@@ -106,7 +106,7 @@ pub fn wrap_xml_request(xml: &[u8]) -> Vec<u8> {
     add_header(&mut header, "HTTP_CONTENT_LENGTH", &xml.len().to_string());
 
     let mut msg: Vec<u8> = vec![];
-    msg.extend_from_slice(header.len().to_string().as_bytes());
+    msg.extend(format!("{}:", header.len()).as_bytes());
     msg.extend(header);
     msg.push(b',');
     msg.extend(xml);

@@ -5,6 +5,7 @@ tar:
 
 build_arm:
 	cross build --release --target=armv7-unknown-linux-musleabihf
+	cp target/armv7-unknown-linux-musleabihf/release/remo bin/remo
 
 scp:
 	scp bin/remo p:bin/remo
