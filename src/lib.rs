@@ -30,7 +30,7 @@ pub fn call_rpc<T: AsRef<str>>(cmd_args: &[T]) -> Result<String> {
     let raw_response = make_rpc_request(&mut stream, msg)?;
     let resp = build_custom_response(&raw_response);
 
-    Ok(resp.into_owned())
+    Ok(resp?.into_owned())
 }
 
 fn make_rpc_request(stream: &mut UnixStream, msg: Vec<u8>) -> Result<String> {
@@ -40,54 +40,34 @@ fn make_rpc_request(stream: &mut UnixStream, msg: Vec<u8>) -> Result<String> {
     Ok(raw_response)
 }
 
-fn build_custom_response(orig: &str) -> Cow<str> {
+fn build_custom_response(orig: &str) -> Result<Cow<str>> {
     let unwrapped = unwrap_response(orig);
-    let len = unwrapped.len();
 
     if let Ok(v) = response_from_str::<Vec<String>>(unwrapped) {
-        return Cow::Owned(prepare_string_response(v, len));
+        return Ok(Cow::Owned(prepare_vec_response(v)?));
     }
 
     if let Ok(i) = response_from_str::<i64>(unwrapped) {
-        return Cow::Owned(i.to_string());
+        return Ok(Cow::Owned(i.to_string()));
     }
 
     if let Ok(s) = response_from_str::<String>(unwrapped) {
-        return Cow::Owned(s);
+        return Ok(Cow::Owned(s));
     }
 
     if let Ok(matrix) = response_from_str::<Vec<Vec<String>>>(unwrapped) {
-        return Cow::Owned(prepare_matrix_response(matrix, len));
+        return Ok(Cow::Owned(prepare_matrix_response(matrix)?));
     }
 
-    Cow::Borrowed(unwrapped)
+    Ok(Cow::Borrowed(unwrapped))
 }
 
-fn prepare_matrix_response(matrix: Vec<Vec<String>>, len: usize) -> String {
-    let mut r = String::with_capacity(len);
-
-    for row in matrix {
-        r.push_str("[\n");
-        for column in row {
-            r.push('\t');
-            r.push_str(&column);
-            r.push('\n');
-        }
-        r.push_str("],\n");
-    }
-
-    r
+fn prepare_matrix_response(matrix: Vec<Vec<String>>) -> Result<String> {
+    Ok(serde_json::to_string_pretty(&matrix)?)
 }
 
-fn prepare_string_response(v: Vec<String>, len: usize) -> String {
-    let mut r = String::with_capacity(len);
-
-    for s in v {
-        r.push_str(&s);
-        r.push('\n');
-    }
-
-    r
+fn prepare_vec_response(v: Vec<String>) -> Result<String> {
+    Ok(serde_json::to_string_pretty(&v)?)
 }
 
 pub fn add_header(v: &mut Vec<u8>, key: &str, value: &str) {

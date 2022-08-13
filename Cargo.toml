@@ -11,3 +11,4 @@ path = "src/bin/remo.rs"
 [dependencies]
 serde_xmlrpc = "0.1.1"
 anyhow = "1.0.57"
+serde_json = "1.0.83"
